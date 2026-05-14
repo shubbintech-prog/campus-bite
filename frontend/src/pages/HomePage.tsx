@@ -159,7 +159,7 @@ export default function HomePage() {
       <section className="bg-primary">
         <div className="container py-12 md:py-16 text-center">
           <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground">Ready to Order?</h2>
-          <p className="mt-2 text-primary-foreground/80 text-sm">Join thousands of students already using LASUSTECH Eats</p>
+          <p className="mt-2 text-primary-foreground/80 text-sm">Join thousands of students already using Campus Bites</p>
           <Link
             to="/vendors"
             className="inline-flex items-center gap-2 mt-6 px-8 py-3 bg-accent text-accent-foreground rounded-xl font-display font-semibold hover:opacity-90 transition-opacity"

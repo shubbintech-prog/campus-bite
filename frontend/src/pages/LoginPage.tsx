@@ -18,9 +18,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <span className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-display font-bold text-xl mx-auto mb-4">LE</span>
+          <span className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-display font-bold text-xl mx-auto mb-4">CB</span>
           <h1 className="font-display text-2xl font-bold">Welcome Back</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your LASUSTECH Eats account</p>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to your Campus Bites account</p>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
