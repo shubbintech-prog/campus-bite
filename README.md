@@ -1,4 +1,4 @@
-# Lasustech Eats
+# Campus Bites
 
 This project is built with:
 
@@ -21,7 +21,7 @@ This project is built with:
 git clone https://github.com/Shubbin/lasustech-eats.git
 
 # Step 2: Navigate to the project directory
-cd lasustech-eats
+cd campus-bites
 
 # Step 3: Install dependencies
 npm i
