@@ -63,7 +63,7 @@ async function seed() {
     ];
 
     for (const s of students) {
-      const user = await User.create({ ...s, password_hash: commonPassword, role: 'student' });
+      const user = await User.create({ ...s, image_url: '', password_hash: commonPassword, role: 'student' });
       await Wallet.create({ user: user._id, balance: 5000 });
     }
     console.log('Students seeded.');
@@ -140,7 +140,7 @@ async function seed() {
         location: 'Main Campus',
         location_landmark: v.landmark,
         status: 'active',
-        image_url: vPhotos[Math.floor(Math.random() * vPhotos.length)],
+        image_url: '',
       });
 
       const menu = await Menu.create({ vendor: vendor._id, menu_name: 'Daily Menu' });
@@ -156,7 +156,7 @@ async function seed() {
             description: item.desc,
             price: item.price,
             category: finalCategory,
-            image_url: item.img,
+            image_url: '',
           });
           count++;
         }
@@ -169,7 +169,7 @@ async function seed() {
           description: 'Our delicious chef choice meal.',
           price: 1200 + count * 100,
           category: 'General',
-          image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800',
+          image_url: '',
         });
         count++;
       }
