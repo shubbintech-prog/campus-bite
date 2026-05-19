@@ -31,11 +31,10 @@ const userSchema = new mongoose.Schema(
 );
 
 // Normalize emails on document save
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
   if (this.email) {
     this.email = this.email.toLowerCase().trim();
   }
-  next();
 });
 
 // Virtual so req.user.id works the same as before
