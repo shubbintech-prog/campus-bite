@@ -2,12 +2,38 @@ import { Link } from "react-router-dom";
 import { Star, Clock, MapPin } from "lucide-react";
 import type { Vendor } from "@/types";
 
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1517248135467-4c7ed938cabd?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=600&q=80",
+];
+
+const getDeterministicImage = (name: string = "") => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % FALLBACK_IMAGES.length;
+  return FALLBACK_IMAGES[index];
+};
+
 export default function VendorCard({ vendor }: { vendor: Vendor }) {
+  const isPlaceholder = !vendor.image_url || 
+                        vendor.image_url === "" || 
+                        vendor.image_url.includes("placeholder");
+  const displayImage = isPlaceholder ? getDeterministicImage(vendor.vendor_name) : vendor.image_url;
+
   return (
-    <Link to={`/vendors/${vendor.id}`} className="block rounded-xl bg-card border border-border overflow-hidden hover:shadow-lg transition-all animate-scale-in">
-      <div className="aspect-[4/3] overflow-hidden">
+    <Link to={`/vendors/${vendor.id}`} className="block rounded-xl bg-card border border-border overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 animate-scale-in">
+      <div className="aspect-[4/3] overflow-hidden relative">
         <img 
-          src={vendor.image_url || "/placeholder-vendor.jpg"} 
+          src={displayImage} 
           alt={vendor.vendor_name} 
           className="w-full h-full object-cover" 
           loading="lazy" 
