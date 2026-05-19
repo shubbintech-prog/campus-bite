@@ -12,6 +12,9 @@ interface User {
   active_role: string;
   onboarding_completed: boolean;
   seller_onboarding_status: "none" | "pending" | "approved";
+  bio?: string;
+  default_address?: string;
+  saved_addresses?: string[];
 }
 
 interface AuthState {

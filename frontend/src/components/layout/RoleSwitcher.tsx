@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ArrowLeftRight, Store, User, Sparkles } from "lucide-react";
-import { SellerOnboardingWizard } from "../modals/SellerOnboardingWizard";
+import { useNavigate } from "react-router-dom";
 
 export const RoleSwitcher: React.FC = () => {
   const { user, token, setAuth } = useAuthStore();
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const navigate = useNavigate();
 
   if (!user) return null;
 
@@ -59,19 +59,13 @@ export const RoleSwitcher: React.FC = () => {
         </button>
       ) : !isVendorOnly && user.role !== "admin" && (
         <button
-          onClick={() => setOnboardingOpen(true)}
+          onClick={() => navigate("/become-seller")}
           className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold px-4.5 py-2 rounded-xl transition-all duration-300 active:scale-[0.98] shadow-md shadow-indigo-600/20 text-xs"
         >
           <Sparkles className="w-4 h-4 animate-pulse text-indigo-200" />
           Start Selling
         </button>
       )}
-
-      {/* Render the wizard modal if triggered */}
-      <SellerOnboardingWizard 
-        isOpen={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-      />
     </div>
   );
 };

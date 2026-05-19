@@ -23,6 +23,9 @@ const userSchema = new mongoose.Schema(
       default: 'none',
     },
     image_url: { type: String },
+    bio: { type: String, default: '' },
+    default_address: { type: String, default: '' },
+    saved_addresses: { type: [String], default: [] },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
 );

@@ -33,6 +33,7 @@ import AdminApplicationReview from "@/pages/dashboards/AdminApplicationReview";
 
 import VendorApplicationPage from "@/pages/VendorApplicationPage";
 import SimulatePaymentPage from "@/pages/SimulatePaymentPage";
+import BecomeSellerPage from "@/pages/BecomeSellerPage";
 import NotFound from "@/pages/NotFound";
 
 import { NotificationProvider } from "@/context/NotificationContext";
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="/orders/:orderId/tracking" element={<OrderTrackingPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/become-seller" element={<BecomeSellerPage />} />
               <Route path="/dashboard/apply-vendor" element={<VendorApplicationPage />} />
             </Route>
 

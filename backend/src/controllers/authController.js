@@ -106,6 +106,10 @@ export const getMe = async (req, res) => {
         onboarding_completed: user.onboarding_completed,
         seller_onboarding_status: user.seller_onboarding_status,
         phone: user.phone,
+        bio: user.bio || '',
+        default_address: user.default_address || '',
+        saved_addresses: user.saved_addresses || [],
+        image_url: user.image_url || '',
         created_at: user.created_at,
       });
     } else {
@@ -188,6 +192,49 @@ export const upgradeSeller = async (req, res) => {
         seller_onboarding_status: user.seller_onboarding_status,
       },
       vendorProfile,
+      token: generateToken(user._id, user.active_role),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update user profile details
+// @route   PUT /api/auth/profile
+export const updateProfile = async (req, res) => {
+  const { name, phone, bio, default_address, saved_addresses, image_url } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (name) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (bio !== undefined) user.bio = bio;
+    if (default_address !== undefined) user.default_address = default_address;
+    if (saved_addresses !== undefined) user.saved_addresses = saved_addresses;
+    if (image_url !== undefined) user.image_url = image_url;
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully!',
+      user: {
+        id: user._id,
+        full_name: user.name,
+        email: user.email,
+        role: user.active_role,
+        roles: user.roles,
+        active_role: user.active_role,
+        onboarding_completed: user.onboarding_completed,
+        seller_onboarding_status: user.seller_onboarding_status,
+        phone: user.phone,
+        bio: user.bio || '',
+        default_address: user.default_address || '',
+        saved_addresses: user.saved_addresses || [],
+        image_url: user.image_url || '',
+        created_at: user.created_at,
+      },
       token: generateToken(user._id, user.active_role),
     });
   } catch (error) {
