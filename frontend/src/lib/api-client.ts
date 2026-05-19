@@ -1,6 +1,25 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://campus-bite-ndg1.onrender.com/api";
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl) {
+    return "http://localhost:5000/api";
+  }
+  // Ensure URL has a protocol (default to https:// if missing, unless localhost)
+  let formattedUrl = envUrl;
+  if (!/^https?:\/\//i.test(formattedUrl)) {
+    formattedUrl = `https://${formattedUrl}`;
+  }
+  // Append /api if it's missing (as apiClient requests don't prefix /api themselves)
+  if (!formattedUrl.endsWith("/api") && !formattedUrl.endsWith("/api/")) {
+    formattedUrl = formattedUrl.endsWith("/") 
+      ? `${formattedUrl}api` 
+      : `${formattedUrl}/api`;
+  }
+  return formattedUrl;
+};
+
+const API_URL = getApiUrl();
 
 const apiClient = axios.create({
   baseURL: API_URL,

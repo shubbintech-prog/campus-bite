@@ -18,6 +18,7 @@ app.use(mongoSanitize());
 // Dynamic CORS configuration supporting local Vite and remote Vercel clients
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'https://campus-bite.vercel.app',
   'https://campus-bites.vercel.app'
 ];
