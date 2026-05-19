@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useSocket } from "@/hooks/use-socket";
+import { RoleSwitcher } from "./RoleSwitcher";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -21,10 +22,11 @@ export default function Navbar() {
   ];
 
   if (isAuthenticated) {
-    const isAdmin = ["super_admin", "auditor", "support"].includes(user?.role || "");
+    const activeRole = user?.active_role || user?.role || "student";
+    const isAdmin = ["super_admin", "auditor", "support", "admin"].includes(activeRole);
     if (isAdmin) {
       navLinks.push({ label: "Admin Panel", href: "/dashboard/admin", icon: LayoutDashboard });
-    } else if (user?.role === "vendor") {
+    } else if (activeRole === "vendor") {
       navLinks.push({ label: "Vendor Panel", href: "/dashboard/vendor", icon: LayoutDashboard });
     } else {
       navLinks.push({ label: "My Orders", href: "/orders", icon: ClipboardList });
@@ -39,13 +41,13 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-border">
+    <nav className="sticky top-0 z-50 w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
       <div className="container px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="bg-primary p-1.5 rounded-lg group-hover:rotate-12 transition-transform">
+          <div className="bg-indigo-600 p-1.5 rounded-lg group-hover:rotate-12 transition-transform">
             <ShoppingCart className="w-5 h-5 text-white" />
           </div>
-          <span className="font-display font-bold text-xl tracking-tight text-foreground">Campus<span className="text-primary">Bites</span></span>
+          <span className="font-display font-bold text-xl tracking-tight text-white">Campus<span className="text-indigo-400">Bites</span></span>
         </Link>
 
         {/* Desktop Nav */}
@@ -54,28 +56,32 @@ export default function Navbar() {
             <Link
               key={link.href}
               to={link.href}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                location.pathname === link.href ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                location.pathname === link.href ? "text-indigo-400 bg-indigo-500/10" : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
               {link.label}
             </Link>
           ))}
           
-          <div className="h-4 w-px bg-border mx-2" />
+          <div className="h-4 w-px bg-slate-800 mx-2" />
           
-          <Link to="/cart" className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
-            <ShoppingCart className="w-5 h-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
-            )}
-          </Link>
+          <div className="flex items-center gap-4">
+            <RoleSwitcher />
+
+            <Link to="/cart" className="relative p-2 text-slate-400 hover:text-white hover:bg-slate-850 rounded-full transition-colors">
+              <ShoppingCart className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          </div>
 
           {isAuthenticated ? (
             <div className="flex items-center gap-2 ml-2">
-              <Link to="/profile" className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors overflow-hidden border border-border">
+              <Link to="/profile" className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors overflow-hidden border border-slate-800">
                 {user?.image_url ? (
                   <img src={user.image_url} alt={user.full_name} className="w-full h-full object-cover" />
                 ) : (
@@ -84,59 +90,64 @@ export default function Navbar() {
               </Link>
               <button 
                 onClick={handleLogout}
-                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-full transition-colors"
+                className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-colors"
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
           ) : (
-            <Link to="/login" className="ml-4 px-6 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity">
+            <Link to="/login" className="ml-4 px-6 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-500 transition-colors">
               Login
             </Link>
           )}
         </div>
 
         {/* Mobile menu button */}
-        <button className="md:hidden p-2 text-muted-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
+        <button className="md:hidden p-2 text-slate-400" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
       {/* Mobile Nav */}
       {mobileOpen && (
-        <div className="md:hidden bg-card border-b border-border animate-slide-down">
-          <div className="container px-4 py-4 space-y-1">
+        <div className="md:hidden bg-slate-900 border-b border-slate-800 animate-slide-down">
+          <div className="container px-4 py-4 space-y-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === link.href ? "text-primary bg-primary/5" : "text-muted-foreground hover:bg-muted"
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
+                  location.pathname === link.href ? "text-indigo-400 bg-indigo-500/10" : "text-slate-400 hover:bg-slate-850"
                 }`}
               >
                 <link.icon className="w-5 h-5" />
                 {link.label}
               </Link>
             ))}
+            
+            <div className="px-4 py-1">
+              <RoleSwitcher />
+            </div>
+
             {isAuthenticated ? (
               <>
-                <Link to="/cart" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted">
+                <Link to="/cart" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-400 hover:bg-slate-850">
                   <ShoppingCart className="w-5 h-5" />
                   Cart ({cartCount})
                 </Link>
-                <Link to="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted">
+                <Link to="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-400 hover:bg-slate-850">
                   <User className="w-5 h-5" />
                   Profile
                 </Link>
-                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/5">
+                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-red-400 hover:bg-red-500/10">
                   <LogOut className="w-5 h-5" />
                   Logout
                 </button>
               </>
             ) : (
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-4 py-3 bg-primary text-primary-foreground rounded-xl text-center font-semibold">
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-4 py-3 bg-indigo-600 text-white rounded-xl text-center font-bold">
                 Login
               </Link>
             )}
