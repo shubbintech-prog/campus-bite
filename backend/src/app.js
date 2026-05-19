@@ -27,7 +27,7 @@ app.use(cors({
     if (
       !origin || 
       allowedOrigins.includes(origin) || 
-      (origin.startsWith('https://campus-bite') && origin.endsWith('.vercel.app'))
+      origin.endsWith('.vercel.app')
     ) {
       callback(null, true);
     } else {
