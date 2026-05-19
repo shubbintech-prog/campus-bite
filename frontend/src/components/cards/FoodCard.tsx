@@ -7,31 +7,72 @@ interface FoodCardProps {
   onAdd?: (item: MenuItem) => void;
 }
 
-const FOOD_FALLBACKS = [
-  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80",
-  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=500&q=80",
-  "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=500&q=80",
-  "https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=500&q=80",
-  "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=500&q=80",
-  "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=500&q=80",
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=500&q=80",
-  "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=500&q=80",
-];
-
-const getDeterministicFoodImage = (name: string = "") => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+const matchFoodImageByName = (name: string = "") => {
+  const normalized = name.toLowerCase();
+  
+  // 1. Amala / Ewedu / Nigerian Swallow
+  if (normalized.includes("amala") || normalized.includes("ewedu") || normalized.includes("gbegiri") || normalized.includes("swallow") || normalized.includes("eba") || normalized.includes("okra") || normalized.includes("pounded yam") || normalized.includes("egusi") || normalized.includes("fufu")) {
+    return "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=500&q=80"; // Swallow and Nigerian traditional soup
   }
-  const index = Math.abs(hash) % FOOD_FALLBACKS.length;
-  return FOOD_FALLBACKS[index];
+
+  // 2. Rice / Jollof / Fried Rice
+  if (normalized.includes("rice") || normalized.includes("jollof") || normalized.includes("fried rice") || normalized.includes("coconut rice")) {
+    return "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&w=500&q=80"; // Nigerian Jollof Rice
+  }
+
+  // 3. Shawarma / Wraps / Kebab / Burger
+  if (normalized.includes("shawarma") || normalized.includes("wrap") || normalized.includes("taco") || normalized.includes("burger") || normalized.includes("kebab")) {
+    return "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=500&q=80"; // Gourmet wrap / Shawarma
+  }
+
+  // 4. Pizza
+  if (normalized.includes("pizza") || normalized.includes("pepperoni") || normalized.includes("margherita")) {
+    return "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=500&q=80"; // Premium Pizza
+  }
+
+  // 5. Suya / Grills / Chicken / Meat
+  if (normalized.includes("suya") || normalized.includes("grill") || normalized.includes("barbecue") || normalized.includes("meat") || normalized.includes("beef") || normalized.includes("chicken") || normalized.includes("wings")) {
+    return "https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=500&q=80"; // Spicy Grilled Beef / Suya style
+  }
+
+  // 6. Coke / Soft Drink / Soda
+  if (normalized.includes("coke") || normalized.includes("cola") || normalized.includes("soda") || normalized.includes("pepsi") || normalized.includes("fanta") || normalized.includes("sprite")) {
+    return "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=500&q=80"; // Chilled Coke Cola Can
+  }
+
+  // 7. Chapman / Cocktail / Mocktail
+  if (normalized.includes("chapman") || normalized.includes("cocktail") || normalized.includes("mocktail") || normalized.includes("juice") || normalized.includes("drink")) {
+    return "https://images.unsplash.com/photo-1513558111299-67ff2213425f?auto=format&fit=crop&w=500&q=80"; // Chapman cocktail
+  }
+
+  // 8. Maltina / Malt / Beer
+  if (normalized.includes("malt") || normalized.includes("maltina") || normalized.includes("guinness") || normalized.includes("amstel")) {
+    return "https://images.unsplash.com/photo-1608270586620-248524c67de9?auto=format&fit=crop&w=500&q=80"; // Nourishing Malt Drink
+  }
+
+  // 9. Water
+  if (normalized.includes("water") || normalized.includes("aquafina") || normalized.includes("eva")) {
+    return "https://images.unsplash.com/photo-1548839140-29a742115f08?auto=format&fit=crop&w=500&q=80"; // Clean spring water
+  }
+
+  // 10. Snacks / Pastry / Cakes / Pies
+  if (normalized.includes("snack") || normalized.includes("pie") || normalized.includes("cake") || normalized.includes("pastry") || normalized.includes("donut") || normalized.includes("chin chin") || normalized.includes("puff puff")) {
+    return "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=500&q=80"; // Glazed donuts / Desserts
+  }
+
+  // General Fallback
+  return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80"; 
 };
 
 export default function FoodCard({ item, onAdd }: FoodCardProps) {
-  const isPlaceholder = !item.image_url || 
-                        item.image_url === "" || 
-                        item.image_url.includes("placeholder");
-  const displayImage = isPlaceholder ? getDeterministicFoodImage(item.name) : item.image_url;
+  const isGenericOrDuplicate = !item.image_url || 
+                               item.image_url === "" || 
+                               item.image_url.includes("placeholder") ||
+                               // Clean up the identical duplicates seeded for distinct swallows/drinks
+                               (item.name !== "Amala & Ewedu" && item.image_url.includes("photo-1604329760661-e71dc83f8f26")) ||
+                               (item.name !== "Coke (50cl)" && item.image_url.includes("photo-1622483767028-3f66f32aef97"));
+
+  const displayImage = isGenericOrDuplicate ? matchFoodImageByName(item.name) : item.image_url;
 
   return (
     <div className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-all animate-scale-in">

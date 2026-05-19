@@ -22,6 +22,7 @@ export default function VendorMenuManagement() {
       price: parseFloat(formData.get("price") as string),
       category: formData.get("category"),
       description: formData.get("description"),
+      image_url: formData.get("image_url"),
       vendor_id: user?.id,
     };
 
@@ -90,6 +91,10 @@ export default function VendorMenuManagement() {
               <textarea name="description" defaultValue={editingItem?.description} rows={2} placeholder="Describe the dish..." className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" />
             </div>
             <div className="md:col-span-2">
+              <label className="text-sm font-medium mb-1.5 block">Image URL</label>
+              <input name="image_url" type="text" defaultValue={editingItem?.image_url} placeholder="https://images.unsplash.com/photo-..." className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+            </div>
+            <div className="md:col-span-2">
               <button type="submit" disabled={addMenuItem.isPending || updateMenuItem.isPending} className="px-6 py-2.5 bg-accent text-accent-foreground rounded-lg font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
                 {editingItem ? "Update Item" : "Save Item"}
               </button>
@@ -103,8 +108,12 @@ export default function VendorMenuManagement() {
         {itemsArray.length > 0 ? (
           itemsArray.map((item) => (
             <div key={item.id} className="flex items-center gap-4 rounded-xl bg-card card-shadow p-3 border border-border/50">
-              <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-8 h-8 text-muted-foreground/20" />
+              <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                {item.image_url ? (
+                  <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                  <ShoppingBag className="w-8 h-8 text-muted-foreground/20" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-display font-semibold text-sm truncate">{item.name}</h4>
