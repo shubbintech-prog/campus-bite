@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
@@ -30,6 +31,21 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// Professional health check endpoint - Placed before rate limiters to avoid blocking Render monitoring pings
+const getHealthStatus = (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED';
+  res.status(200).json({
+    status: 'UP',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: dbStatus,
+    env: process.env.NODE_ENV
+  });
+};
+
+app.get('/health', getHealthStatus);
+app.get('/api/health', getHealthStatus);
 
 // API Rate Limiting to prevent denial of service and brute forcing
 const limiter = rateLimit({
