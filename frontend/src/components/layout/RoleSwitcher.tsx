@@ -20,7 +20,7 @@ export const RoleSwitcher: React.FC = () => {
     const targetRole = user.active_role === "student" ? "vendor" : "student";
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/switch-role`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "https://campus-bite-ndg1.onrender.com"}/api/auth/switch-role`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

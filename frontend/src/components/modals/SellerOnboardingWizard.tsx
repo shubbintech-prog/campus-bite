@@ -45,7 +45,7 @@ export const SellerOnboardingWizard: React.FC<SellerOnboardingWizardProps> = ({ 
     setError("");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/upgrade-seller`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "https://campus-bite-ndg1.onrender.com"}/api/auth/upgrade-seller`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
