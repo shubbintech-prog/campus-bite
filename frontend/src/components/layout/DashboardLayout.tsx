@@ -37,8 +37,8 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { user } = useAuthStore();
-  const isVendor = user?.role === "vendor";
-  const isAdmin = ["super_admin", "auditor", "support"].includes(user?.role || "");
+  const isVendor = user?.active_role === "vendor" || user?.role === "vendor";
+  const isAdmin = ["super_admin", "auditor", "support"].includes(user?.active_role || user?.role || "");
   
   let links = studentLinks;
   let title = "Student Dashboard";

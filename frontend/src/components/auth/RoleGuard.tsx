@@ -10,11 +10,14 @@ export default function RoleGuard({ children, allowedRoles }: { children: React.
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
       navigate("/login");
-    } else if (isInitialized && user && !allowedRoles.includes(user.role)) {
-      // Redirect to their correct dashboard
-      if (["super_admin", "auditor", "support"].includes(user.role)) navigate("/dashboard/admin");
-      else if (user.role === "vendor") navigate("/dashboard/vendor");
-      else navigate("/dashboard");
+    } else if (isInitialized && user) {
+      const currentRole = user.active_role || user.role;
+      if (!allowedRoles.includes(currentRole)) {
+        // Redirect to their correct dashboard based on current active role state
+        if (["super_admin", "auditor", "support"].includes(currentRole)) navigate("/dashboard/admin");
+        else if (currentRole === "vendor") navigate("/dashboard/vendor");
+        else navigate("/dashboard");
+      }
     }
   }, [isAuthenticated, user, allowedRoles, navigate, isInitialized]);
 
