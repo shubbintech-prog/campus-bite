@@ -1,31 +1,61 @@
+import Payment from '../models/Payment.js';
+import Order from '../models/Order.js';
 import { initializePayment, verifyPayment } from '../services/paystackService.js';
-import { query } from '../config/db.js';
 
-// @desc    Initialize payment
+// @desc    Initialize payment (Simulated Gateway)
 // @route   POST /api/payments/initialize
 export const initPayment = async (req, res) => {
   const { order_id, amount } = req.body;
   const email = req.user.email;
 
   try {
-    const data = await initializePayment(email, amount, order_id);
+    // Generate a unique simulated transaction reference
+    const reference = 'sim_' + Math.random().toString(36).substring(2, 15);
     
     // Create record in payments table
-    await query(
-      'INSERT INTO payments (order_id, amount, transaction_reference, payment_status) VALUES (?, ?, ?, ?)',
-      [order_id, amount, data.data.reference, 'pending']
-    );
+    await Payment.create({
+      order: order_id,
+      amount,
+      transaction_reference: reference,
+      payment_status: 'pending',
+    });
 
-    res.json(data.data);
+    // Provide a beautiful mock gateway URL pointing to our frontend simulated gateway page!
+    const mockAuthUrl = `/simulate-payment?orderId=${order_id}&amount=${amount}&reference=${reference}`;
+
+    res.json({
+      authorization_url: mockAuthUrl,
+      reference: reference
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Paystack Webhook
+// @desc    Simulate payment success callback from the mock gateway
+// @route   POST /api/payments/simulate-success
+export const simulatePaymentSuccess = async (req, res) => {
+  const { order_id, reference } = req.body;
+
+  try {
+    // Update payment status
+    await Payment.findOneAndUpdate(
+      { transaction_reference: reference },
+      { payment_status: 'paid' }
+    );
+
+    // Update order status
+    await Order.findByIdAndUpdate(order_id, { payment_status: 'paid' });
+
+    res.json({ success: true, message: 'Simulated payment succeeded!' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Paystack Webhook (Kept for compatibility)
 // @route   POST /api/payments/webhook
 export const handleWebhook = async (req, res) => {
-  // Paystack sends a POST request to this endpoint
   const event = req.body;
 
   try {
@@ -33,17 +63,12 @@ export const handleWebhook = async (req, res) => {
       const { reference, metadata } = event.data;
       const order_id = metadata.order_id;
 
-      // Update payment status
-      await query(
-        'UPDATE payments SET payment_status = ? WHERE transaction_reference = ?',
-        ['paid', reference]
+      await Payment.findOneAndUpdate(
+        { transaction_reference: reference },
+        { payment_status: 'paid' }
       );
 
-      // Update order status
-      await query(
-        'UPDATE orders SET payment_status = ? WHERE id = ?',
-        ['paid', order_id]
-      );
+      await Order.findByIdAndUpdate(order_id, { payment_status: 'paid' });
     }
     res.sendStatus(200);
   } catch (error) {
@@ -51,5 +76,3 @@ export const handleWebhook = async (req, res) => {
     res.sendStatus(500);
   }
 };
-
-

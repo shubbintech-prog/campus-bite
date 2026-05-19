@@ -32,6 +32,7 @@ import AdminReportsPage from "@/pages/dashboards/AdminReportsPage";
 import AdminApplicationReview from "@/pages/dashboards/AdminApplicationReview";
 
 import VendorApplicationPage from "@/pages/VendorApplicationPage";
+import SimulatePaymentPage from "@/pages/SimulatePaymentPage";
 import NotFound from "@/pages/NotFound";
 
 import { NotificationProvider } from "@/context/NotificationContext";
@@ -48,6 +49,7 @@ const App = () => (
             {/* Auth pages (no layout) */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/simulate-payment" element={<SimulatePaymentPage />} />
 
             {/* Main layout */}
             <Route element={<MainLayout />}>

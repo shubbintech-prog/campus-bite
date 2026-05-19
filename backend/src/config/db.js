@@ -1,27 +1,19 @@
-import mysql from 'mysql2/promise';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config();
 
-// Parse DATABASE_URL if it exists (MySQL format: mysql://user:password@host:port/database)
-const dbConfig = {
-  uri: process.env.DATABASE_URL || 'mysql://root@localhost:3306/lasustech_eats'
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`MongoDB connection error: ${error.message}`);
+    process.exit(1);
+  }
 };
 
-const pool = mysql.createPool(process.env.DATABASE_URL || {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'lasustech_eats',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
-
-console.log('Connecting to MySQL database...');
-
-export const query = async (sql, params) => {
-  return await pool.execute(sql, params);
-};
-
-export default pool;
+export default connectDB;

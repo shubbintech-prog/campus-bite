@@ -1,4 +1,7 @@
-import { query } from '../config/db.js';
+import VendorApplication from '../models/VendorApplication.js';
+import User from '../models/User.js';
+import Vendor from '../models/Vendor.js';
+import Notification from '../models/Notification.js';
 
 // @desc    Apply to become a vendor
 // @route   POST /api/vendor-applications
@@ -8,33 +11,36 @@ export const applyAsVendor = async (req, res) => {
   const user_id = req.user.id;
 
   try {
-    // Check if user is a student
     if (req.user.role !== 'student') {
       return res.status(403).json({ message: 'Only students can apply to become vendors' });
     }
 
-    // Check if user already has a pending or approved application
-    const [existing] = await query(
-      'SELECT id, status FROM vendor_applications WHERE user_id = ? AND status IN ("pending", "approved")',
-      [user_id]
-    );
+    const existing = await VendorApplication.findOne({
+      user: user_id,
+      status: { $in: ['pending', 'approved'] },
+    });
 
-    if (existing.length > 0) {
-      return res.status(400).json({ 
-        message: existing[0].status === 'approved' 
-          ? 'You are already an approved vendor' 
-          : 'You already have a pending application' 
+    if (existing) {
+      return res.status(400).json({
+        message:
+          existing.status === 'approved'
+            ? 'You are already an approved vendor'
+            : 'You already have a pending application',
       });
     }
 
-    const [result] = await query(
-      'INSERT INTO vendor_applications (user_id, business_name, phone_number, food_category, description, location_landmark) VALUES (?, ?, ?, ?, ?, ?)',
-      [user_id, business_name, phone_number, food_category, description, location_landmark]
-    );
+    const application = await VendorApplication.create({
+      user: user_id,
+      business_name,
+      phone_number,
+      food_category,
+      description,
+      location_landmark,
+    });
 
     res.status(201).json({
       message: 'Application submitted successfully',
-      id: result.insertId
+      id: application._id,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -46,13 +52,18 @@ export const applyAsVendor = async (req, res) => {
 // @access  Private (Admin only)
 export const getApplications = async (req, res) => {
   try {
-    const [rows] = await query(`
-      SELECT va.*, u.name as applicant_name, u.email as applicant_email 
-      FROM vendor_applications va 
-      JOIN users u ON va.user_id = u.id 
-      ORDER BY va.created_at DESC
-    `);
-    res.json(rows);
+    const applications = await VendorApplication.find()
+      .populate('user', 'name email')
+      .sort({ created_at: -1 });
+
+    const result = applications.map((app) => {
+      const plain = app.toJSON();
+      plain.applicant_name = plain.user?.name;
+      plain.applicant_email = plain.user?.email;
+      return plain;
+    });
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -63,20 +74,14 @@ export const getApplications = async (req, res) => {
 // @access  Private (Admin only)
 export const reviewApplication = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body; // approved or rejected
+  const { status } = req.body;
 
   if (!['approved', 'rejected'].includes(status)) {
     return res.status(400).json({ message: 'Invalid status' });
   }
 
   try {
-    const [apps] = await query(`
-      SELECT va.*, u.email as user_email 
-      FROM vendor_applications va
-      JOIN users u ON va.user_id = u.id
-      WHERE va.id = ?
-    `, [id]);
-    const application = apps[0];
+    const application = await VendorApplication.findById(id).populate('user', 'name email');
 
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
@@ -86,47 +91,42 @@ export const reviewApplication = async (req, res) => {
       return res.status(400).json({ message: 'Application already reviewed' });
     }
 
-    // Update application status
-    await query('UPDATE vendor_applications SET status = ? WHERE id = ?', [status, id]);
+    application.status = status;
+    await application.save();
 
     if (status === 'approved') {
-      // 1. Update user role
-      await query('UPDATE users SET role = "vendor" WHERE id = ?', [application.user_id]);
+      // Update user role to vendor
+      await User.findByIdAndUpdate(application.user._id, { role: 'vendor' });
 
-      // 2. Check if vendor already exists with this email
-      const [existingVendor] = await query('SELECT id FROM vendors WHERE email = ?', [application.user_email]);
-      
-      if (existingVendor.length === 0) {
-        // Create vendor record
-        await query(
-          'INSERT INTO vendors (vendor_name, owner_name, email, phone, location, location_landmark, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [
-            application.business_name,
-            application.applicant_name || application.business_name,
-            application.user_email,
-            application.phone_number,
-            'Main Campus',
-            application.location_landmark || '',
-            'active'
-          ]
-        );
+      // Check if vendor already exists
+      const existingVendor = await Vendor.findOne({ email: application.user.email });
+
+      if (!existingVendor) {
+        await Vendor.create({
+          vendor_name: application.business_name,
+          owner_name: application.user.name || application.business_name,
+          email: application.user.email,
+          phone: application.phone_number,
+          location: 'Main Campus',
+          location_landmark: application.location_landmark || '',
+          status: 'active',
+        });
       } else {
-        // Update existing vendor record status
-        await query('UPDATE vendors SET status = "active", vendor_name = ? WHERE id = ?', [application.business_name, existingVendor[0].id]);
+        existingVendor.status = 'active';
+        existingVendor.vendor_name = application.business_name;
+        await existingVendor.save();
       }
     }
 
     // Send notification
-    await query(
-      'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
-      [
-        application.user_id,
-        `Vendor Application ${status === 'approved' ? 'Approved' : 'Rejected'}`,
-        status === 'approved' 
+    await Notification.create({
+      user: application.user._id,
+      title: `Vendor Application ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+      message:
+        status === 'approved'
           ? 'Congratulations! Your application to become a vendor has been approved. You can now access the vendor dashboard.'
-          : 'We regret to inform you that your application to become a vendor has been rejected.'
-      ]
-    );
+          : 'We regret to inform you that your application to become a vendor has been rejected.',
+    });
 
     res.json({ message: `Application ${status}` });
   } catch (error) {

@@ -1,14 +1,13 @@
-import { query } from '../config/db.js';
+import Notification from '../models/Notification.js';
 
 // @desc    Get user notifications
 // @route   GET /api/notifications
 export const getNotifications = async (req, res) => {
   try {
-    const [rows] = await query(
-      'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC',
-      [req.user.id]
-    );
-    res.json(rows);
+    const notifications = await Notification.find({ user: req.user.id }).sort({
+      created_at: -1,
+    });
+    res.json(notifications);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -18,13 +17,14 @@ export const getNotifications = async (req, res) => {
 // @route   PUT /api/notifications/:id/read
 export const markAsRead = async (req, res) => {
   try {
-    await query(
-      'UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?',
-      [req.params.id, req.user.id]
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      { is_read: true },
+      { new: true }
     );
-    const [rows] = await query('SELECT * FROM notifications WHERE id = ?', [req.params.id]);
-    if (rows.length > 0) {
-      res.json(rows[0]);
+
+    if (notification) {
+      res.json(notification);
     } else {
       res.status(404).json({ message: 'Notification not found' });
     }
@@ -32,5 +32,3 @@ export const markAsRead = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-

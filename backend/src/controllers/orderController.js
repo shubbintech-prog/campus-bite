@@ -1,74 +1,62 @@
-import { query } from '../config/db.js';
+import Order from '../models/Order.js';
+import Vendor from '../models/Vendor.js';
+import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { emitToRoom } from '../config/socket.js';
 
 // @desc    Create new order
 // @route   POST /api/orders
 export const createOrder = async (req, res) => {
-  const { vendor_id, items, total_price } = req.body;
+  const { vendor_id, items, total_price, total_amount } = req.body;
   const user_id = req.user.id;
 
   try {
-    // Start transaction
-    await query('START TRANSACTION');
+    const order = await Order.create({
+      user: user_id,
+      vendor: vendor_id,
+      total_price: total_price || total_amount,
+      items: items.map((i) => ({
+        menu_item_id: i.menu_item_id,
+        quantity: i.quantity,
+        price: i.price,
+      })),
+    });
 
-    const [orderResult] = await query(
-      'INSERT INTO orders (user_id, vendor_id, total_price) VALUES (?, ?, ?)',
-      [user_id, vendor_id, total_price]
-    );
-    const orderId = orderResult.insertId;
-
-    for (const item of items) {
-      await query(
-        'INSERT INTO order_items (order_id, menu_item_id, quantity, price) VALUES (?, ?, ?, ?)',
-        [orderId, item.menu_item_id, item.quantity, item.price]
-      );
-    }
-
-    await query('COMMIT');
-    
-    const [newOrderRows] = await query('SELECT * FROM orders WHERE id = ?', [orderId]);
-    res.status(201).json(newOrderRows[0]);
+    res.status(201).json(order);
   } catch (error) {
-    await query('ROLLBACK');
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get all orders (Admin or User)
+// @desc    Get all orders (Admin, Vendor, or Student)
 // @route   GET /api/orders
 export const getOrders = async (req, res) => {
   try {
-    let rows;
+    let orders;
+
     if (req.user.role === 'admin') {
-      const [allRows] = await query(`
-        SELECT o.*, v.vendor_name 
-        FROM orders o 
-        JOIN vendors v ON o.vendor_id = v.id 
-        ORDER BY o.created_at DESC
-      `);
-      rows = allRows;
+      orders = await Order.find()
+        .populate('vendor', 'vendor_name')
+        .sort({ created_at: -1 });
     } else if (req.user.role === 'vendor') {
-      const [vendorRows] = await query('SELECT id FROM vendors WHERE email = (SELECT email FROM users WHERE id = ?)', [req.user.id]);
-      const vendorId = vendorRows[0]?.id;
-      const [vOrderRows] = await query(`
-        SELECT o.*, u.name as student_name 
-        FROM orders o 
-        JOIN users u ON o.user_id = u.id 
-        WHERE o.vendor_id = ? 
-        ORDER BY o.created_at DESC
-      `, [vendorId]);
-      rows = vOrderRows;
+      const vendor = await Vendor.findOne({ email: (await User.findById(req.user.id)).email });
+      orders = await Order.find({ vendor: vendor?._id })
+        .populate('user', 'name')
+        .sort({ created_at: -1 });
+
+      // Map student_name alias for frontend compatibility
+      orders = orders.map((o) => {
+        const plain = o.toJSON();
+        plain.student_name = plain.user?.name;
+        return plain;
+      });
     } else {
-      const [uOrderRows] = await query(`
-        SELECT o.*, v.vendor_name 
-        FROM orders o 
-        JOIN vendors v ON o.vendor_id = v.id 
-        WHERE o.user_id = ? 
-        ORDER BY o.created_at DESC
-      `, [req.user.id]);
-      rows = uOrderRows;
+      orders = await Order.find({ user: req.user.id })
+        .populate('vendor', 'vendor_name')
+        .sort({ created_at: -1 });
     }
-    res.json(rows);
+
+    res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -78,15 +66,12 @@ export const getOrders = async (req, res) => {
 // @route   GET /api/orders/:id
 export const getOrderById = async (req, res) => {
   try {
-    const [orderRows] = await query('SELECT * FROM orders WHERE id = ?', [req.params.id]);
-    const order = orderRows[0];
+    const order = await Order.findById(req.params.id).populate(
+      'items.menu_item_id',
+      'name'
+    );
 
     if (order) {
-      const [itemsRows] = await query(
-        'SELECT oi.*, mi.name FROM order_items oi JOIN menu_items mi ON oi.menu_item_id = mi.id WHERE oi.order_id = ?',
-        [order.id]
-      );
-      order.items = itemsRows;
       res.json(order);
     } else {
       res.status(404).json({ message: 'Order not found' });
@@ -101,24 +86,23 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   const { status } = req.body;
   try {
-    await query(
-      'UPDATE orders SET order_status = ? WHERE id = ?',
-      [status, req.params.id]
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { order_status: status },
+      { new: true }
     );
-    const [rows] = await query('SELECT * FROM orders WHERE id = ?', [req.params.id]);
-    
-    if (rows.length > 0) {
-      const order = rows[0];
-      
-      // Create notification
-      await query(
-        'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
-        [order.user_id, 'Order Update', `Your order #${order.id} is now ${status}!`]
-      );
 
-      // Emit socket event to the user's room
-      emitToRoom(`user_${order.user_id}`, 'order_update', order);
-      
+    if (order) {
+      // Create notification
+      await Notification.create({
+        user: order.user,
+        title: 'Order Update',
+        message: `Your order #${order._id} is now ${status}!`,
+      });
+
+      // Emit socket event
+      emitToRoom(`user_${order.user}`, 'order_update', order);
+
       res.json(order);
     } else {
       res.status(404).json({ message: 'Order not found' });
@@ -127,5 +111,3 @@ export const updateOrderStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-

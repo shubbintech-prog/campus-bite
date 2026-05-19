@@ -1,6 +1,5 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { query } from '../config/db.js';
 
 dotenv.config();
 

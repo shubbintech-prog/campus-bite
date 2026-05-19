@@ -1,29 +1,29 @@
-import { query } from '../config/db.js';
+import Vendor from '../models/Vendor.js';
+import Order from '../models/Order.js';
 
 // @desc    Get all vendors
 // @route   GET /api/vendors
 export const getVendors = async (req, res) => {
   const { search } = req.query;
   try {
-    let sql = 'SELECT * FROM vendors WHERE status = ?';
-    let params = ['active'];
-
+    const filter = { status: 'active' };
     if (search) {
-      sql += ' AND (vendor_name LIKE ? OR location LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
+      filter.$or = [
+        { vendor_name: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } },
+      ];
     }
 
-    const [rows] = await query(sql, params);
-    const vendors = rows;
+    const vendors = await Vendor.find(filter).lean();
 
     for (const vendor of vendors) {
-      const [pendingResult] = await query(
-        "SELECT COUNT(*) as count FROM orders WHERE vendor_id = ? AND order_status IN ('pending', 'preparing')",
-        [vendor.id]
-      );
-      const pendingCount = parseInt(pendingResult[0].count || 0);
-      vendor.wait_time_estimate = 5 + (pendingCount * 5);
+      const pendingCount = await Order.countDocuments({
+        vendor: vendor._id,
+        order_status: { $in: ['pending', 'preparing'] },
+      });
+      vendor.wait_time_estimate = 5 + pendingCount * 5;
       vendor.is_busy = pendingCount > 5;
+      vendor.id = vendor._id;
     }
 
     res.json(vendors);
@@ -36,9 +36,9 @@ export const getVendors = async (req, res) => {
 // @route   GET /api/vendors/:id
 export const getVendorById = async (req, res) => {
   try {
-    const [rows] = await query('SELECT * FROM vendors WHERE id = ?', [req.params.id]);
-    if (rows.length > 0) {
-      res.json(rows[0]);
+    const vendor = await Vendor.findById(req.params.id);
+    if (vendor) {
+      res.json(vendor);
     } else {
       res.status(404).json({ message: 'Vendor not found' });
     }
@@ -52,12 +52,8 @@ export const getVendorById = async (req, res) => {
 export const createVendor = async (req, res) => {
   const { vendor_name, owner_name, email, phone, location } = req.body;
   try {
-    const [result] = await query(
-      'INSERT INTO vendors (vendor_name, owner_name, email, phone, location) VALUES (?, ?, ?, ?, ?)',
-      [vendor_name, owner_name, email, phone, location]
-    );
-    const [newVendor] = await query('SELECT * FROM vendors WHERE id = ?', [result.insertId]);
-    res.status(201).json(newVendor[0]);
+    const vendor = await Vendor.create({ vendor_name, owner_name, email, phone, location });
+    res.status(201).json(vendor);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -68,13 +64,13 @@ export const createVendor = async (req, res) => {
 export const updateVendor = async (req, res) => {
   const { vendor_name, owner_name, phone, location, status } = req.body;
   try {
-    await query(
-      'UPDATE vendors SET vendor_name = ?, owner_name = ?, phone = ?, location = ?, status = ? WHERE id = ?',
-      [vendor_name, owner_name, phone, location, status, req.params.id]
+    const vendor = await Vendor.findByIdAndUpdate(
+      req.params.id,
+      { vendor_name, owner_name, phone, location, status },
+      { new: true }
     );
-    const [updatedVendor] = await query('SELECT * FROM vendors WHERE id = ?', [req.params.id]);
-    if (updatedVendor.length > 0) {
-      res.json(updatedVendor[0]);
+    if (vendor) {
+      res.json(vendor);
     } else {
       res.status(404).json({ message: 'Vendor not found' });
     }
@@ -82,7 +78,3 @@ export const updateVendor = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-
-
-

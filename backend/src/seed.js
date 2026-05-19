@@ -1,20 +1,17 @@
-import mysql from 'mysql2/promise';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import dns from 'dns';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-});
+import User from './models/User.js';
+import Vendor from './models/Vendor.js';
+import Menu from './models/Menu.js';
+import MenuItem from './models/MenuItem.js';
+import Wallet from './models/Wallet.js';
 
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
@@ -22,65 +19,60 @@ const hashPassword = async (password) => {
 };
 
 async function seed() {
-  const connection = await pool.getConnection();
   try {
-    console.log('Ensuring fresh database...');
-    const dbName = process.env.DB_NAME || 'lasustech_eats';
-    await connection.query(`DROP DATABASE IF EXISTS ${dbName}`);
-    await connection.query(`CREATE DATABASE ${dbName}`);
-    await connection.query(`USE ${dbName}`);
-    
-    console.log('Initializing schema...');
-    const schemaPath = path.join(__dirname, 'models/schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    const queries = schema.split(';').filter(q => q.trim().length > 0);
-    for (const q of queries) {
-      await connection.query(q);
-    }
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log('Connected to MongoDB...');
 
-    console.log('Starting seeding (MySQL)...');
+    // Wipe existing data
+    await User.deleteMany({});
+    await Vendor.deleteMany({});
+    await Menu.deleteMany({});
+    await MenuItem.deleteMany({});
+    await Wallet.deleteMany({});
+    console.log('Cleared existing collections.');
+
     const commonPassword = await hashPassword('CampusBites2026!');
 
     // 1. Seed Admins
     const admins = [
-      ['Super Admin', 'admin@campusbites.com', 'super_admin'],
-      ['Audit Admin', 'auditor@campusbites.com', 'auditor'],
-      ['Support Admin', 'support@campusbites.com', 'support'],
+      { name: 'Super Admin', email: 'admin@campusbites.com', role: 'admin' },
+      { name: 'Audit Admin', email: 'auditor@campusbites.com', role: 'admin' },
+      { name: 'Support Admin', email: 'support@campusbites.com', role: 'admin' },
     ];
-
-    for (const [name, email, role] of admins) {
-      await connection.query('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [name, email, commonPassword, role]);
+    for (const a of admins) {
+      await User.create({ ...a, password_hash: commonPassword });
     }
+    console.log('Admins seeded.');
 
     // 2. Seed Students
     const students = [
-      ['Adebayo Johnson', 'adebayo@campusbites.com', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'], 
-      ['Chioma Okafor', 'chioma@campusbites.com', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80'],
-      ['Emeka Nwosu', 'emeka@campusbites.com', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80'], 
-      ['Fatima Bello', 'fatima@campusbites.com', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=200&q=80'],
-      ['Olumide Bakare', 'olumide@campusbites.com', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80'], 
-      ['Zainab Musa', 'zainab@campusbites.com', 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80'],
-      ['Tunde Afolayan', 'tunde@campusbites.com', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'], 
-      ['Ifeoma Eze', 'ife@campusbites.com', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80'],
-      ['Segun Arinze', 'segun@campusbites.com', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80'], 
-      ['Nike Adeyemi', 'nike@campusbites.com', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80'],
-      ['Kunle Afolayan', 'kunle@campusbites.com', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80'], 
-      ['Yinka Ayefele', 'yinka@campusbites.com', 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=200&q=80'],
-      ['Boluwatife Ajayi', 'bolu@campusbites.com', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80'], 
-      ['Dapo Abiodun', 'dapo@campusbites.com', 'https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=200&q=80'],
+      { name: 'Adebayo Johnson', email: 'adebayo@campusbites.com', image_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Chioma Okafor', email: 'chioma@campusbites.com', image_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Emeka Nwosu', email: 'emeka@campusbites.com', image_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Fatima Bello', email: 'fatima@campusbites.com', image_url: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Olumide Bakare', email: 'olumide@campusbites.com', image_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Zainab Musa', email: 'zainab@campusbites.com', image_url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Tunde Afolayan', email: 'tunde@campusbites.com', image_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Ifeoma Eze', email: 'ife@campusbites.com', image_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Segun Arinze', email: 'segun@campusbites.com', image_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Nike Adeyemi', email: 'nike@campusbites.com', image_url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Kunle Afolayan', email: 'kunle@campusbites.com', image_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Yinka Ayefele', email: 'yinka@campusbites.com', image_url: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Boluwatife Ajayi', email: 'bolu@campusbites.com', image_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80' },
+      { name: 'Dapo Abiodun', email: 'dapo@campusbites.com', image_url: 'https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&w=200&q=80' },
     ];
 
-    for (const [name, email, img] of students) {
-      const [u] = await connection.query('INSERT INTO users (name, email, password_hash, role, image_url) VALUES (?, ?, ?, ?, ?)', [name, email, commonPassword, 'student', img]);
-      await connection.query('INSERT INTO wallets (user_id, balance) VALUES (?, ?)', [u.insertId, 5000]);
+    for (const s of students) {
+      const user = await User.create({ ...s, password_hash: commonPassword, role: 'student' });
+      await Wallet.create({ user: user._id, balance: 5000 });
     }
+    console.log('Students seeded.');
 
-    // 3. Comprehensive Menus
+    // 3. Menu item templates
     const menuItems = {
       Rice: [
         { name: 'Jollof Rice Special', desc: 'Smoky jollof rice with chicken & dodo.', price: 2500, img: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=800' },
-        { name: 'Fried Rice & Turkey', desc: 'Stirl-fry rice with veggies & turkey.', price: 3500, img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800' },
+        { name: 'Fried Rice & Turkey', desc: 'Stir-fry rice with veggies & turkey.', price: 3500, img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800' },
         { name: 'Coconut Rice', desc: 'Sweet coconut rice with prawns.', price: 2800, img: 'https://images.unsplash.com/photo-1516684732162-798a0062be99?auto=format&fit=crop&q=80&w=800' },
         { name: 'Ofada Rice & Stew', desc: 'Bukka style ofada with ayamase.', price: 3000, img: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=800' },
       ],
@@ -104,7 +96,7 @@ async function seed() {
         { name: 'Maltina', desc: 'Nourishing malt drink.', price: 600, img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=800' },
         { name: 'Bottled Water', desc: 'Refreshing spring water.', price: 200, img: 'https://images.unsplash.com/photo-1548839140-29a742115f08?auto=format&fit=crop&q=80&w=800' },
         { name: 'Chapman', desc: 'Nigerian special cocktail.', price: 1500, img: 'https://images.unsplash.com/photo-1513558111299-67ff2213425f?auto=format&fit=crop&q=80&w=800' },
-      ]
+      ],
     };
 
     const vendorTypes = [
@@ -119,7 +111,7 @@ async function seed() {
       { name: 'Emesco Restaurant', email: 'emesco@campusbites.com', landmark: 'Activities Area (Shop 10)', cats: ['Rice', 'Drinks'] },
       { name: 'Madam Favour Special', email: 'favour@campusbites.com', landmark: 'Activities Area (Shop 07)', cats: ['Swallow'] },
       { name: 'Mrs Iremu Canteen', email: 'iremu@campusbites.com', landmark: 'Activities Area (Shop 25)', cats: ['Rice', 'Swallow'] },
-      { name: 'O\'mine\'s Chow', email: 'omines@campusbites.com', landmark: 'Activities Area (Shop 14)', cats: ['FastFood', 'Drinks'] },
+      { name: "O'mine's Chow", email: 'omines@campusbites.com', landmark: 'Activities Area (Shop 14)', cats: ['FastFood', 'Drinks'] },
       { name: 'Spring Tree Chinese', email: 'spring@campusbites.com', landmark: 'Activities Area (Shop 30)', cats: ['Rice'] },
       { name: 'Shawarma Palace', email: 'shawarma@campusbites.com', landmark: 'Activities Area (Shop 11)', cats: ['FastFood', 'Drinks'] },
       { name: 'Student Grills', email: 'grills@campusbites.com', landmark: 'Activities Area (Shop 09)', cats: ['FastFood', 'Drinks'] },
@@ -133,49 +125,62 @@ async function seed() {
     const vPhotos = [
       'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1517248135467-4c7ed938cabd?auto=format&fit=crop&w=800&q=80'
+      'https://images.unsplash.com/photo-1517248135467-4c7ed938cabd?auto=format&fit=crop&w=800&q=80',
     ];
 
     for (const v of vendorTypes) {
-      const [u] = await connection.query('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [v.name, v.email, commonPassword, 'vendor']);
-      const [vendor] = await connection.query(
-        'INSERT INTO vendors (vendor_name, owner_name, email, phone, location, location_landmark, status, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [v.name, v.name, v.email, '080' + Math.floor(Math.random() * 90000000), 'Main Campus', v.landmark, 'active', vPhotos[Math.floor(Math.random()*vPhotos.length)]]
-      );
-      
-      const vendorId = vendor.insertId;
-      const [menu] = await connection.query('INSERT INTO menus (vendor_id, menu_name) VALUES (?, ?)', [vendorId, 'Daily Menu']);
-      const menuId = menu.insertId;
+      // Create vendor user account
+      await User.create({ name: v.name, email: v.email, password_hash: commonPassword, role: 'vendor' });
+
+      const vendor = await Vendor.create({
+        vendor_name: v.name,
+        owner_name: v.name,
+        email: v.email,
+        phone: '080' + Math.floor(Math.random() * 90000000),
+        location: 'Main Campus',
+        location_landmark: v.landmark,
+        status: 'active',
+        image_url: vPhotos[Math.floor(Math.random() * vPhotos.length)],
+      });
+
+      const menu = await Menu.create({ vendor: vendor._id, menu_name: 'Daily Menu' });
 
       let count = 0;
       for (const cat of v.cats) {
         const items = menuItems[cat] || [];
         for (const item of items) {
-          // Add 'Nigerian' to category if it's Rice or Swallow
-          const finalCategory = (cat === 'Rice' || cat === 'Swallow') ? 'Nigerian' : cat;
-          await connection.query(
-            'INSERT INTO menu_items (menu_id, name, description, price, category, image_url) VALUES (?, ?, ?, ?, ?, ?)',
-            [menuId, item.name, item.desc, item.price, finalCategory, item.img]
-          );
+          const finalCategory = cat === 'Rice' || cat === 'Swallow' ? 'Nigerian' : cat;
+          await MenuItem.create({
+            menu: menu._id,
+            name: item.name,
+            description: item.desc,
+            price: item.price,
+            category: finalCategory,
+            image_url: item.img,
+          });
           count++;
         }
       }
 
       while (count < 10) {
-        await connection.query(
-          'INSERT INTO menu_items (menu_id, name, description, price, category, image_url) VALUES (?, ?, ?, ?, ?, ?)',
-          [menuId, `Special Item ${count}`, 'Our delicious chef choice meal.', 1200 + (count * 100), 'General', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800']
-        );
+        await MenuItem.create({
+          menu: menu._id,
+          name: `Special Item ${count}`,
+          description: 'Our delicious chef choice meal.',
+          price: 1200 + count * 100,
+          category: 'General',
+          image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800',
+        });
         count++;
       }
     }
 
+    console.log('Vendors and menus seeded.');
     console.log('Seeding completed successfully!');
   } catch (err) {
     console.error('Seeding failed:', err);
   } finally {
-    connection.release();
-    pool.end();
+    await mongoose.disconnect();
   }
 }
 
