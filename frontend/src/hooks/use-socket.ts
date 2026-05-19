@@ -8,12 +8,16 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || "https://campus-bite-ndg1.onr
 let socket;
 
 export const useSocket = () => {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (user && !socket) {
-      socket = io(SOCKET_URL);
+    if (user && token && !socket) {
+      socket = io(SOCKET_URL, {
+        auth: {
+          token
+        }
+      });
 
       socket.on("connect", () => {
         console.log("Connected to socket server");
