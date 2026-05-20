@@ -3,6 +3,36 @@ import User from '../models/User.js';
 import VendorProfile from '../models/VendorProfile.js';
 import Wallet from '../models/Wallet.js';
 import { generateToken } from '../middleware/authMiddleware.js';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
+
+// Helper to optimize and store uploaded user avatar images
+const processAvatarImage = async (file, userId) => {
+  if (!file) return null;
+  const fileName = `avatar-user-${userId}-${Date.now()}.jpeg`;
+  const uploadDir = path.join(process.cwd(), 'public/uploads');
+  
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  const destPath = path.join(uploadDir, fileName);
+  
+  await sharp(file.path)
+    .resize(300, 300, { fit: 'cover' })
+    .jpeg({ quality: 80 })
+    .toFile(destPath);
+    
+  // Clean up original temporary file
+  try {
+    fs.unlinkSync(file.path);
+  } catch (err) {
+    console.error('Failed to delete temp file:', err);
+  }
+  
+  return `/uploads/${fileName}`;
+};
 
 // Helper to construct slug
 const slugify = (text) => text.toString().toLowerCase().trim()
@@ -242,12 +272,44 @@ export const updateProfile = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Handle avatar image upload if present
+    if (req.file) {
+      // Clean up old avatar image if it was a locally uploaded file
+      if (user.image_url && user.image_url.startsWith('/uploads/')) {
+        const oldFilePath = path.join(process.cwd(), 'public', user.image_url);
+        if (fs.existsSync(oldFilePath)) {
+          try {
+            fs.unlinkSync(oldFilePath);
+          } catch (err) {
+            console.error('Failed to delete old avatar image:', err);
+          }
+        }
+      }
+      
+      const newAvatarPath = await processAvatarImage(req.file, user._id);
+      if (newAvatarPath) {
+        user.image_url = newAvatarPath;
+      }
+    } else if (image_url !== undefined) {
+      user.image_url = image_url;
+    }
+
     if (name) user.name = name;
     if (phone !== undefined) user.phone = phone;
     if (bio !== undefined) user.bio = bio;
     if (default_address !== undefined) user.default_address = default_address;
-    if (saved_addresses !== undefined) user.saved_addresses = saved_addresses;
-    if (image_url !== undefined) user.image_url = image_url;
+    
+    if (saved_addresses !== undefined) {
+      let parsedSavedAddresses = saved_addresses;
+      if (typeof saved_addresses === 'string') {
+        try {
+          parsedSavedAddresses = JSON.parse(saved_addresses);
+        } catch (err) {
+          // Leave as is if JSON parsing fails
+        }
+      }
+      user.saved_addresses = parsedSavedAddresses;
+    }
 
     await user.save();
 

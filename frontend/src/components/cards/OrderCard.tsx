@@ -21,8 +21,16 @@ interface OrderCardProps {
 
 export default function OrderCard({ order, showStudent }: OrderCardProps) {
   const status = order.order_status?.toLowerCase();
-  const totalPrice = typeof order.total_price === 'string' ? parseFloat(order.total_price) : order.total_price;
-  const orderIdText = typeof order.id === 'string' && order.id.length > 8 ? `#${order.id.slice(0, 8)}` : `#${order.id}`;
+  
+  // Safely parse total price
+  const totalPrice = typeof order.total_price === 'string' 
+    ? (parseFloat(order.total_price) || 0) 
+    : (order.total_price ?? 0);
+    
+  // Safely parse order ID
+  const orderIdText = order.id 
+    ? (typeof order.id === 'string' && order.id.length > 8 ? `#${order.id.slice(0, 8)}` : `#${order.id}`)
+    : "#unknown";
 
   return (
     <div className="rounded-xl bg-card border border-border p-4 hover:shadow-md transition-all duration-300">
@@ -46,12 +54,20 @@ export default function OrderCard({ order, showStudent }: OrderCardProps) {
       
       {order.items && order.items.length > 0 && (
         <div className="mt-3 space-y-1">
-          {order.items.map((item, i) => (
-            <div key={i} className="flex justify-between text-xs text-muted-foreground">
-              <span>{item.quantity}x {item.name}</span>
-              <span>₦{(typeof item.price === 'string' ? parseFloat(item.price) : item.price * item.quantity).toLocaleString()}</span>
-            </div>
-          ))}
+          {order.items.map((item, i) => {
+            const itemPrice = typeof item.price === 'string' 
+              ? (parseFloat(item.price) || 0) 
+              : (item.price ?? 0);
+            const itemQuantity = item.quantity ?? 1;
+            const itemTotal = itemPrice * itemQuantity;
+            
+            return (
+              <div key={i} className="flex justify-between text-xs text-muted-foreground">
+                <span>{itemQuantity}x {item.name}</span>
+                <span>₦{itemTotal.toLocaleString()}</span>
+              </div>
+            );
+          })}
         </div>
       )}
       
