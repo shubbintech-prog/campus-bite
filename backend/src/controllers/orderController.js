@@ -1,6 +1,7 @@
 import Order from '../models/Order.js';
 import Vendor from '../models/Vendor.js';
 import User from '../models/User.js';
+import VendorProfile from '../models/VendorProfile.js';
 import Notification from '../models/Notification.js';
 import { emitToRoom } from '../config/socket.js';
 
@@ -107,6 +108,53 @@ export const updateOrderStatus = async (req, res) => {
     } else {
       res.status(404).json({ message: 'Order not found' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get orders for active vendor storefront
+// @route   GET /api/orders/vendor
+export const getVendorOrders = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Look up vendor storefront by email
+    let vendor = await Vendor.findOne({ email: user.email });
+
+    // Bridge vendor storefront dynamically if they registered but their Vendor model wasn't created yet
+    if (!vendor) {
+      const profile = await VendorProfile.findOne({ user: user._id });
+      if (profile) {
+        vendor = await Vendor.create({
+          vendor_name: profile.business_name,
+          owner_name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+          location: profile.school_location,
+          location_landmark: '',
+          status: 'active',
+        });
+      }
+    }
+
+    if (!vendor) {
+      return res.json([]);
+    }
+
+    let orders = await Order.find({ vendor: vendor._id })
+      .populate('user', 'name')
+      .sort({ created_at: -1 });
+
+    // Map student_name alias for frontend compatibility
+    orders = orders.map((o) => {
+      const plain = o.toJSON();
+      plain.student_name = plain.user?.name;
+      return plain;
+    });
+
+    res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
