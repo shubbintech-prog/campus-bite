@@ -2,14 +2,18 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
-import { useVendors } from "@/hooks/use-vendor-api"; // We can reuse or add a specific hook
+import { useVendors } from "@/hooks/use-vendor-api"; 
+import { useCartStore } from "@/store/useCartStore";
+import { getImageUrl } from "@/lib/utils";
 
 export default function FoodDetailPage() {
   const { foodId } = useParams<{ foodId: string }>();
   const { data: vendors } = useVendors();
+  const { addItem } = useCartStore();
   
   // Find item across all vendors for now, or add useFoodItem later
   const item = vendors?.flatMap(v => v.menu_items || []).find(f => f.id === Number(foodId));
+  const vendor = vendors?.find(v => (v.menu_items || []).some((f: any) => f.id === Number(foodId)));
   
   const [qty, setQty] = useState(1);
 
@@ -41,7 +45,19 @@ export default function FoodDetailPage() {
                 </button>
               </div>
               <button
-                onClick={() => toast.success(`${qty}x ${item.name} added to cart!`)}
+                onClick={() => {
+                  if (!item || !vendor) return;
+                  for (let i = 0; i < qty; i++) {
+                    addItem({
+                      id: String(item.id),
+                      name: item.name,
+                      price: item.price,
+                      image: getImageUrl(item.image_url || item.image),
+                      vendorId: String(vendor.id || vendor._id)
+                    });
+                  }
+                  toast.success(`${qty}x ${item.name} added to cart!`);
+                }}
                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-accent text-accent-foreground rounded-xl font-display font-semibold hover:opacity-90 transition-opacity"
               >
                 <ShoppingCart className="w-5 h-5" />

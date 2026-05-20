@@ -6,6 +6,7 @@ import CampusMap from "@/components/ui/CampusMap";
 import { useVendorDetails, useVendorMenu } from "@/hooks/use-vendor-api";
 import { getImageUrl } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCartStore } from "@/store/useCartStore";
 
 const categories = ["All", "Nigerian", "Rice", "Swallow", "FastFood", "Snacks", "Grills", "Drinks"];
 
@@ -14,6 +15,7 @@ export default function VendorMenuPage() {
   const { data: vendor, isLoading: loadingVendor } = useVendorDetails(id || "");
   const { data: menuItems, isLoading: loadingMenu } = useVendorMenu(id || "");
   const [activeCategory, setActiveCategory] = useState("All");
+  const { addItem } = useCartStore();
 
   if (loadingVendor || loadingMenu) {
     return (
@@ -122,7 +124,15 @@ export default function VendorMenuPage() {
                 description: item.description,
                 available: true
               }} 
-              onAdd={() => toast.success(`${item.name} added to cart!`)} 
+              onAdd={(cardItem) => {
+                addItem({
+                  id: String(cardItem.id),
+                  name: cardItem.name,
+                  price: cardItem.price,
+                  image: getImageUrl(cardItem.image_url),
+                  vendorId: String(vendor.id || vendor._id || id || "")
+                });
+              }} 
             />
           ))}
           {filtered?.length === 0 && (

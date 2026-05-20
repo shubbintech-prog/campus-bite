@@ -7,11 +7,14 @@ import WalletCard from "@/components/wallet/WalletCard";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUserOrders } from "@/hooks/use-order-api";
 import { useMenuItems } from "@/hooks/use-vendor-api";
+import { useCartStore } from "@/store/useCartStore";
+import { getImageUrl } from "@/lib/utils";
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
   const { data: orders, isLoading: loadingOrders } = useUserOrders();
   const { data: recommendations, isLoading: loadingRecs } = useMenuItems("");
+  const { addItem } = useCartStore();
 
   if (loadingOrders || loadingRecs) {
     return (
@@ -96,6 +99,15 @@ export default function StudentDashboard() {
                 description: item.description,
                 vendorId: "1" // Default for mock recs
               }} 
+              onAdd={(cardItem) => {
+                addItem({
+                  id: String(cardItem.id),
+                  name: cardItem.name,
+                  price: cardItem.price,
+                  image: getImageUrl(cardItem.image_url),
+                  vendorId: "1"
+                });
+              }}
             />
           ))}
         </div>

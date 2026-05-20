@@ -5,12 +5,15 @@ import heroImg from "@/assets/hero-food.jpg";
 import VendorCard from "@/components/cards/VendorCard";
 import FoodCard from "@/components/cards/FoodCard";
 import { useVendors, useMenuItems } from "@/hooks/use-vendor-api";
+import { useCartStore } from "@/store/useCartStore";
+import { getImageUrl } from "@/lib/utils";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const { data: vendors, isLoading: loadingVendors } = useVendors(searchQuery);
   const { data: foodItems, isLoading: loadingFood } = useMenuItems(searchQuery);
+  const { addItem } = useCartStore();
 
   const isSearching = searchQuery.length > 0;
 
@@ -111,18 +114,37 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {foodItems?.slice(0, isSearching ? undefined : 4).map((item: any) => (
-                <FoodCard key={item.id} item={{
-                  id: item.id,
-                  menu_id: item.menu_id,
-                  name: item.name,
-                  price: parseFloat(item.price),
-                  image_url: item.image_url || "",
-                  category: item.category,
-                  description: item.description,
-                  available: true
-                }} />
-              ))}
+              {foodItems?.slice(0, isSearching ? undefined : 4).map((item: any) => {
+                const matchingVendor = vendors?.find((v: any) => 
+                  (v.menu_items || []).some((f: any) => f.id === item.id)
+                );
+                const vendorId = matchingVendor ? String(matchingVendor.id || matchingVendor._id) : "1";
+                
+                return (
+                  <FoodCard 
+                    key={item.id} 
+                    item={{
+                      id: item.id,
+                      menu_id: item.menu_id,
+                      name: item.name,
+                      price: parseFloat(item.price),
+                      image_url: item.image_url || "",
+                      category: item.category,
+                      description: item.description,
+                      available: true
+                    }} 
+                    onAdd={(cardItem) => {
+                      addItem({
+                        id: String(cardItem.id),
+                        name: cardItem.name,
+                        price: cardItem.price,
+                        image: getImageUrl(cardItem.image_url),
+                        vendorId: vendorId
+                      });
+                    }}
+                  />
+                );
+              })}
               {foodItems?.length === 0 && (
                 <div className="col-span-full py-10 text-center text-muted-foreground">
                   No meals found matching your search.
