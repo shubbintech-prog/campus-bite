@@ -1,6 +1,7 @@
 import { Plus, Star } from "lucide-react";
 import { toast } from "sonner";
 import type { MenuItem } from "@/types";
+import { getImageUrl } from "@/lib/utils";
 
 interface FoodCardProps {
   item: MenuItem;
@@ -78,7 +79,7 @@ export default function FoodCard({ item, onAdd }: FoodCardProps) {
     <div className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-all animate-scale-in">
       <div className="aspect-[4/3] overflow-hidden relative">
         <img 
-          src={displayImage} 
+          src={getImageUrl(displayImage)} 
           alt={item.name} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
         />

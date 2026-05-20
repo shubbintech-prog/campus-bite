@@ -6,13 +6,17 @@ import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
+import path from 'path';
 
 dotenv.config();
 
 const app = express();
 
 // Production Security Configuration
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  contentSecurityPolicy: false,
+}));
 app.use(mongoSanitize());
 
 // Dynamic CORS configuration supporting local Vite and remote Vercel clients
@@ -64,6 +68,9 @@ app.use('/api/', limiter);
 
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Static serving for uploaded files
+app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
 
 // Routes (to be added)
 app.get('/', (req, res) => {

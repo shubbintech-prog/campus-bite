@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingBag, Clock, Star, ArrowRight, Loader2 } from "lucide-react";
+import { ShoppingBag, Clock, Star, ArrowRight, Loader2, Store } from "lucide-react";
 import DashboardStatCard from "@/components/cards/DashboardStatCard";
 import OrderCard from "@/components/cards/OrderCard";
 import FoodCard from "@/components/cards/FoodCard";
@@ -26,15 +26,22 @@ export default function StudentDashboard() {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="font-display text-2xl font-bold mb-6">Welcome back, {firstName}! 👋</h1>
+      <h1 className="font-display text-3xl font-extrabold tracking-tight mb-6">
+        Welcome back, <span className="text-gradient">{firstName}</span>
+      </h1>
 
       <Link to="/dashboard/apply-vendor" className="block mb-8 group">
-        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 hover:bg-primary/10 transition-all card-shadow">
-          <div>
-            <h3 className="font-display font-bold text-lg text-primary mb-1">Want to sell food on campus? 🍳</h3>
-            <p className="text-sm text-muted-foreground">Apply to become a vendor and reach thousands of students daily.</p>
+        <div className="bg-gradient-to-r from-primary/5 via-primary/5 to-accent/5 border border-primary/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 hover:bg-primary/10 transition-all card-shadow relative overflow-hidden">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:rotate-6 transition-transform">
+              <Store className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-lg text-primary mb-1">Become a Campus Bites Seller</h3>
+              <p className="text-sm text-muted-foreground">Launch your virtual kitchen and reach thousands of hungry students on campus daily.</p>
+            </div>
           </div>
-          <div className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-display font-semibold text-sm group-hover:scale-105 transition-transform">
+          <div className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-display font-semibold text-sm group-hover:scale-105 transition-transform shrink-0">
             Apply Now
           </div>
         </div>
