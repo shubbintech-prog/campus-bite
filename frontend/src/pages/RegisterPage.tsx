@@ -14,6 +14,10 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     role: "student", // default role selection
+    restaurantName: "",
+    restaurantAddress: "",
+    restaurantDescription: "",
+    categories: "",
   });
   const register = useRegister();
 
@@ -30,12 +34,23 @@ export default function RegisterPage() {
       return;
     }
 
-    // Strip confirmPassword before posting to API
+    if (formData.role === "vendor") {
+      if (!formData.restaurantName.trim()) {
+        toast.error("Restaurant / Kitchen Name is required for vendors.");
+        return;
+      }
+      if (!formData.restaurantAddress.trim()) {
+        toast.error("Restaurant location landmark/address is required for vendors.");
+        return;
+      }
+    }
+
+    // Strip confirmPassword and optionally format categories for the API
     const { confirmPassword, ...submitData } = formData;
     register.mutate(submitData);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -50,11 +65,11 @@ export default function RegisterPage() {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800/80 p-8 rounded-2xl shadow-2xl relative z-10">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800/80 p-8 rounded-2xl shadow-2xl relative z-10 my-8">
         <div className="text-center mb-8">
           <span className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-display font-bold text-xl mx-auto mb-3 shadow-lg shadow-indigo-600/20">CB</span>
           <h1 className="font-display text-2xl font-bold text-white tracking-tight">Create Account</h1>
-          <p className="text-sm text-slate-400 mt-1.5">Join the campus food network today</p>
+          <p className="text-sm text-slate-400 mt-1.5 font-medium">Join the campus food network today</p>
         </div>
 
         {/* Dual Role Card Selection */}
@@ -132,6 +147,63 @@ export default function RegisterPage() {
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all font-semibold text-sm" 
             />
           </div>
+
+          {/* Dynamic Seller-Only Restaurant Details */}
+          {formData.role === "vendor" && (
+            <div className="space-y-4 p-4 rounded-xl border border-indigo-500/20 bg-indigo-600/5 animate-scale-in">
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider block mb-1">Restaurant Details</span>
+              
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Restaurant / Kitchen Name</label>
+                <input 
+                  type="text" 
+                  name="restaurantName"
+                  placeholder="e.g. Iya Basira Delicacies" 
+                  value={formData.restaurantName}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all font-semibold text-sm" 
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Location / Address Landmark</label>
+                <input 
+                  type="text" 
+                  name="restaurantAddress"
+                  placeholder="e.g. SUB Building, Main Gate" 
+                  value={formData.restaurantAddress}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all font-semibold text-sm" 
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Food Categories (comma separated)</label>
+                <input 
+                  type="text" 
+                  name="categories"
+                  placeholder="Jollof Rice, Swallow, Fast Food, Snacks" 
+                  value={formData.categories}
+                  onChange={handleChange}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all font-semibold text-sm" 
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Restaurant Description</label>
+                <textarea 
+                  name="restaurantDescription"
+                  placeholder="Tell students about your famous recipes, spices, and delivery details..." 
+                  value={formData.restaurantDescription}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all font-semibold text-sm resize-none" 
+                />
+              </div>
+            </div>
+          )}
           
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Password</label>
@@ -148,7 +220,7 @@ export default function RegisterPage() {
               <button 
                 type="button" 
                 onClick={() => setShowPw(!showPw)} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-355 transition-colors"
               >
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -170,7 +242,7 @@ export default function RegisterPage() {
               <button 
                 type="button" 
                 onClick={() => setShowConfirmPw(!showConfirmPw)} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-355 transition-colors"
               >
                 {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>

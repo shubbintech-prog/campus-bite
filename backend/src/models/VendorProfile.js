@@ -24,6 +24,7 @@ const vendorProfileSchema = new mongoose.Schema(
       pickup: { type: Boolean, default: true },
       delivery: { type: Boolean, default: false },
     },
+    description: { type: String, default: '' },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
 );

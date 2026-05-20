@@ -13,7 +13,17 @@ const slugify = (text) => text.toString().toLowerCase().trim()
 // @desc    Register a new user
 // @route   POST /api/auth/register
 export const registerUser = async (req, res) => {
-  const { name, email, phone, password, role } = req.body;
+  const { 
+    name, 
+    email, 
+    phone, 
+    password, 
+    role,
+    restaurantName,
+    restaurantAddress,
+    restaurantDescription,
+    categories
+  } = req.body;
   const normalizedEmail = email ? email.toLowerCase().trim() : '';
 
   try {
@@ -35,13 +45,37 @@ export const registerUser = async (req, res) => {
       password_hash: passwordHash,
       roles: [initialRole],
       active_role: initialRole,
-      onboarding_completed: initialRole === 'vendor' ? false : true,
-      seller_onboarding_status: initialRole === 'vendor' ? 'pending' : 'none',
+      onboarding_completed: true, // Automatically completed because they specify details at registration
+      seller_onboarding_status: initialRole === 'vendor' ? 'approved' : 'none',
     });
 
     // Auto-create wallet for student buyers
     if (initialRole === 'student') {
       await Wallet.create({ user: user._id, balance: 5000 });
+    }
+
+    // Auto-create VendorProfile for sellers
+    if (initialRole === 'vendor') {
+      const businessName = restaurantName || `${name}'s Kitchen`;
+      const businessSlug = slugify(businessName) + '-' + Math.floor(1000 + Math.random() * 9000);
+      
+      const parsedCategories = Array.isArray(categories) 
+        ? categories 
+        : categories 
+          ? categories.split(',').map(c => c.trim()) 
+          : ['Nigerian', 'Fast Food'];
+
+      await VendorProfile.create({
+        user: user._id,
+        business_name: businessName,
+        business_slug: businessSlug,
+        logo: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600',
+        categories: parsedCategories,
+        school_location: restaurantAddress || 'Main Campus',
+        operating_hours: { open: '08:00', close: '20:00' },
+        description: restaurantDescription || '',
+        verification_status: 'approved',
+      });
     }
 
     res.status(201).json({
