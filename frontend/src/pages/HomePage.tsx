@@ -77,7 +77,7 @@ export default function HomePage() {
                 location: v.location,
                 location_landmark: v.location_landmark,
                 rating: v.rating,
-                image_url: v.image_url || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=400",
+                image_url: v.image_url || "",
                 status: v.status,
                 wait_time_estimate: 15
               }} />
@@ -117,7 +117,7 @@ export default function HomePage() {
                   menu_id: item.menu_id,
                   name: item.name,
                   price: parseFloat(item.price),
-                  image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400",
+                  image_url: item.image_url || "",
                   category: item.category,
                   description: item.description,
                   available: true

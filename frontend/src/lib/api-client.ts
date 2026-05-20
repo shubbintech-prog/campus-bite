@@ -42,6 +42,12 @@ apiClient.interceptors.request.use(
         console.error("Error parsing auth-storage", e);
       }
     }
+
+    // Automatically let Axios handle boundary encoding for multipart FormData uploads
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

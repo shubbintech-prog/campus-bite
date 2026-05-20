@@ -50,7 +50,11 @@ export const useVendorDetails = (vendorId: string) => {
 export const useAddMenuItem = () => {
   return useMutation({
     mutationFn: async (itemData: any) => {
-      const response = await apiClient.post("/menu/items", itemData);
+      const response = await apiClient.post("/menu/items", itemData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       return response.data;
     },
   });
@@ -59,7 +63,11 @@ export const useAddMenuItem = () => {
 export const useUpdateMenuItem = () => {
   return useMutation({
     mutationFn: async ({ itemId, itemData }: { itemId: string; itemData: any }) => {
-      const response = await apiClient.put(`/menu/items/${itemId}`, itemData);
+      const response = await apiClient.put(`/menu/items/${itemId}`, itemData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       return response.data;
     },
   });

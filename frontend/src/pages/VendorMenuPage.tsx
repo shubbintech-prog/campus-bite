@@ -109,7 +109,7 @@ export default function VendorMenuPage() {
                 menu_id: item.menu_id || item.id,
                 name: item.name,
                 price: parseFloat(item.price),
-                image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400",
+                image_url: item.image_url || "",
                 category: item.category,
                 description: item.description,
                 available: true

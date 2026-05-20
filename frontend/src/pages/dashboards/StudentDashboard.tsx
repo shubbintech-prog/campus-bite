@@ -91,7 +91,7 @@ export default function StudentDashboard() {
                 id: item.id,
                 name: item.name,
                 price: parseFloat(item.price),
-                image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400",
+                image_url: item.image_url || "",
                 category: item.category,
                 description: item.description,
                 vendorId: "1" // Default for mock recs
