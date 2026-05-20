@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star, Clock, MapPin } from "lucide-react";
 import type { Vendor } from "@/types";
+import { getImageUrl } from "@/lib/utils";
 
 const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80",
@@ -27,7 +28,7 @@ export default function VendorCard({ vendor }: { vendor: Vendor }) {
   const isPlaceholder = !vendor.image_url || 
                         vendor.image_url === "" || 
                         vendor.image_url.includes("placeholder");
-  const displayImage = isPlaceholder ? getDeterministicImage(vendor.vendor_name) : vendor.image_url;
+  const displayImage = isPlaceholder ? getDeterministicImage(vendor.vendor_name) : getImageUrl(vendor.image_url);
 
   return (
     <Link to={`/vendors/${vendor.id}`} className="block rounded-xl bg-card border border-border overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 animate-scale-in">

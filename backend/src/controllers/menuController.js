@@ -2,6 +2,7 @@ import MenuItem from '../models/MenuItem.js';
 import Menu from '../models/Menu.js';
 import Vendor from '../models/Vendor.js';
 import VendorProfile from '../models/VendorProfile.js';
+import User from '../models/User.js';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
@@ -72,7 +73,17 @@ const resolveVendorMenu = async (req) => {
 // @route   GET /api/vendors/:id/menu
 export const getVendorMenu = async (req, res) => {
   try {
-    const menu = await Menu.findOne({ vendor: req.params.id });
+    let menu = await Menu.findOne({ vendor: req.params.id });
+    if (!menu) {
+      // Fallback: check if the id corresponds to a User ID
+      const user = await User.findById(req.params.id);
+      if (user) {
+        const vendor = await Vendor.findOne({ email: user.email });
+        if (vendor) {
+          menu = await Menu.findOne({ vendor: vendor._id });
+        }
+      }
+    }
     if (!menu) return res.json([]);
 
     const items = await MenuItem.find({ menu: menu._id });

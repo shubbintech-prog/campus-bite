@@ -109,3 +109,17 @@ export const useUpdateApplicationStatus = () => {
     },
   });
 };
+
+export const useUpdateVendorStorefront = () => {
+  return useMutation({
+    mutationFn: async ({ vendorId, vendorData }: { vendorId: string; vendorData: any }) => {
+      const response = await apiClient.put(`/vendors/${vendorId}`, vendorData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    },
+  });
+};
+

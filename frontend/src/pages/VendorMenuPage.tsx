@@ -4,6 +4,7 @@ import { ArrowLeft, Star, MapPin, Clock, Loader2 } from "lucide-react";
 import FoodCard from "@/components/cards/FoodCard";
 import CampusMap from "@/components/ui/CampusMap";
 import { useVendorDetails, useVendorMenu } from "@/hooks/use-vendor-api";
+import { getImageUrl } from "@/lib/utils";
 import { toast } from "sonner";
 
 const categories = ["All", "Nigerian", "Rice", "Swallow", "FastFood", "Snacks", "Grills", "Drinks"];
@@ -35,12 +36,19 @@ export default function VendorMenuPage() {
     ? menuItems 
     : menuItems?.filter((f: any) => f.category === activeCategory);
 
+  const isPlaceholder = !vendor.image_url || 
+                        vendor.image_url === "" || 
+                        vendor.image_url.includes("placeholder");
+  const displayImage = isPlaceholder 
+    ? "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" 
+    : getImageUrl(vendor.image_url);
+
   const displayVendor = {
     id: vendor.id,
     name: vendor.vendor_name,
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800",
+    image: displayImage,
     rating: vendor.rating || 0,
-    location: vendor.location || "Main Campus",
+    location: vendor.location_landmark || vendor.location || "Main Campus",
     deliveryTime: "15-25 min"
   };
 

@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
-import { Plus, Pencil, Trash2, X, Loader2, ShoppingBag, Upload, Image as ImageIcon } from "lucide-react";
-import { useVendorMenu, useAddMenuItem, useUpdateMenuItem, useDeleteMenuItem } from "@/hooks/use-vendor-api";
+import { useState, useRef, useEffect } from "react";
+import { Plus, Pencil, Trash2, X, Loader2, ShoppingBag, Upload, Image as ImageIcon, Store, MapPin } from "lucide-react";
+import { useVendorMenu, useAddMenuItem, useUpdateMenuItem, useDeleteMenuItem, useVendorDetails, useUpdateVendorStorefront } from "@/hooks/use-vendor-api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getImageUrl } from "@/lib/utils";
 import { toast } from "sonner";
@@ -11,6 +11,90 @@ export default function VendorMenuManagement() {
   const addMenuItem = useAddMenuItem();
   const updateMenuItem = useUpdateMenuItem();
   const deleteMenuItem = useDeleteMenuItem();
+  const { data: vendor, refetch: refetchVendor } = useVendorDetails(user?.id || "");
+  const updateStorefront = useUpdateVendorStorefront();
+
+  const [showStorefrontForm, setShowStorefrontForm] = useState(false);
+  const [storefrontFile, setStorefrontFile] = useState<File | null>(null);
+  const [storefrontPreview, setStorefrontPreview] = useState<string>("");
+  const [isDraggingStorefront, setIsDraggingStorefront] = useState(false);
+  const storefrontFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync current vendor image on load or change
+  useEffect(() => {
+    if (vendor?.image_url) {
+      setStorefrontPreview(getImageUrl(vendor.image_url));
+    }
+  }, [vendor]);
+
+  const handleStorefrontFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Invalid file type. Please upload an image.");
+        return;
+      }
+      setStorefrontFile(file);
+      setStorefrontPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleStorefrontDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingStorefront(true);
+  };
+
+  const handleStorefrontDragLeave = () => {
+    setIsDraggingStorefront(false);
+  };
+
+  const handleStorefrontDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingStorefront(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Invalid file type. Please upload an image.");
+        return;
+      }
+      setStorefrontFile(file);
+      setStorefrontPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const clearStorefrontImage = () => {
+    setStorefrontFile(null);
+    setStorefrontPreview(vendor?.image_url ? getImageUrl(vendor.image_url) : "");
+    if (storefrontFileInputRef.current) {
+      storefrontFileInputRef.current.value = "";
+    }
+  };
+
+  const handleStorefrontSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!vendor) return;
+
+    const formDataRaw = new FormData(e.currentTarget);
+    const submitData = new FormData();
+    submitData.append("vendor_name", formDataRaw.get("vendor_name") as string);
+    submitData.append("location_landmark", formDataRaw.get("location_landmark") as string);
+
+    if (storefrontFile) {
+      submitData.append("image", storefrontFile);
+    } else if (vendor.image_url) {
+      submitData.append("image_url", vendor.image_url);
+    }
+
+    try {
+      await updateStorefront.mutateAsync({ vendorId: user?.id || "", vendorData: submitData });
+      toast.success("Restaurant storefront details updated successfully!");
+      setShowStorefrontForm(false);
+      setStorefrontFile(null);
+      refetchVendor();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update storefront details");
+    }
+  };
 
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -129,6 +213,7 @@ export default function VendorMenuManagement() {
               setEditingItem(null);
               setSelectedFile(null);
               setPreviewUrl("");
+              if (showStorefrontForm) setShowStorefrontForm(false);
             }
           }}
           className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all card-shadow"
@@ -137,6 +222,167 @@ export default function VendorMenuManagement() {
           {showForm ? "Cancel" : "Add New Item"}
         </button>
       </div>
+
+      {/* Restaurant Storefront Display / Settings Card */}
+      {vendor && (
+        <div className="rounded-2xl bg-card border border-border/80 overflow-hidden mb-8 card-shadow relative">
+          <div className="h-36 md:h-48 overflow-hidden relative">
+            <img 
+              src={vendor.image_url ? getImageUrl(vendor.image_url) : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80"} 
+              alt={vendor.vendor_name} 
+              className="w-full h-full object-cover" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+              <div className="flex gap-4 items-center">
+                <div className="w-16 h-16 rounded-xl bg-background border border-border flex items-center justify-center shrink-0 shadow-md">
+                  <Store className="w-8 h-8 text-primary" />
+                </div>
+                <div className="text-foreground">
+                  <h2 className="font-display font-extrabold text-xl md:text-2xl drop-shadow-sm">{vendor.vendor_name}</h2>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-primary" /> {vendor.location_landmark || "No location landmark set"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowStorefrontForm(!showStorefrontForm);
+                  if (showForm) setShowForm(false);
+                }}
+                className="px-4 py-2 bg-background/95 hover:bg-background border border-border text-foreground font-bold text-xs rounded-xl transition-all shadow-sm active:scale-[0.97]"
+              >
+                {showStorefrontForm ? "Close Settings" : "Storefront Settings"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restaurant Storefront Editing Panel */}
+      {showStorefrontForm && vendor && (
+        <div className="rounded-2xl bg-card border border-border/80 p-6 md:p-8 mb-8 card-shadow relative overflow-hidden transition-all duration-300 animate-scale-in">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-amber-500" />
+          
+          <h3 className="font-display font-bold text-xl mb-6 text-foreground/90 flex items-center gap-2">
+            <Store className="w-5 h-5 text-primary" /> Edit Storefront Details
+          </h3>
+          
+          <form className="grid md:grid-cols-2 gap-6" onSubmit={handleStorefrontSubmit}>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block">Restaurant Name</label>
+              <input 
+                name="vendor_name" 
+                type="text" 
+                defaultValue={vendor.vendor_name} 
+                required 
+                placeholder="e.g. Mama T's Kitchen" 
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium" 
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block">Landmark Location</label>
+              <input 
+                name="location_landmark" 
+                type="text" 
+                defaultValue={vendor.location_landmark} 
+                required 
+                placeholder="e.g. Shop 05, Activities Area" 
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium" 
+              />
+            </div>
+            
+            {/* Storefront Image Upload */}
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block">Storefront Cover Image</label>
+              
+              <div 
+                onDragOver={handleStorefrontDragOver}
+                onDragLeave={handleStorefrontDragLeave}
+                onDrop={handleStorefrontDrop}
+                className={`relative border-2 border-dashed rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center cursor-pointer min-h-[180px] ${
+                  isDraggingStorefront 
+                    ? "border-primary bg-primary/5 scale-[0.99]" 
+                    : "border-border hover:border-muted-foreground/50 bg-background"
+                }`}
+                onClick={() => {
+                  storefrontFileInputRef.current?.click();
+                }}
+              >
+                <input 
+                  type="file" 
+                  ref={storefrontFileInputRef}
+                  onChange={handleStorefrontFileChange}
+                  accept="image/*"
+                  className="hidden" 
+                />
+
+                {storefrontPreview ? (
+                  <div className="relative w-full max-w-[480px] aspect-[16/9] rounded-xl overflow-hidden shadow-inner group">
+                    <img src={storefrontPreview} alt="Storefront Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearStorefrontImage();
+                        }}
+                        className="p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+                        title="Reset to Original"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-2 pointer-events-none select-none">
+                    <div className="w-12 h-12 bg-muted/60 border border-border rounded-xl flex items-center justify-center mx-auto text-muted-foreground/80 hover:text-foreground transition-colors">
+                      <Upload className="w-6 h-6 animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Drag & Drop Storefront Photo</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">JPEG, PNG, WebP up to 5MB</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-4 py-1.5 bg-muted border border-border rounded-lg text-xs font-semibold text-foreground hover:bg-muted/80 transition-colors pointer-events-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        storefrontFileInputRef.current?.click();
+                      }}
+                    >
+                      Browse Files
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="md:col-span-2 pt-2 flex items-center gap-3">
+              <button 
+                type="submit" 
+                disabled={updateStorefront.isPending} 
+                className="px-6 py-3 bg-accent text-accent-foreground rounded-xl font-bold text-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2 card-shadow"
+              >
+                {updateStorefront.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save Storefront Details
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowStorefrontForm(false);
+                  setStorefrontFile(null);
+                  setStorefrontPreview(vendor.image_url ? getImageUrl(vendor.image_url) : "");
+                }}
+                className="px-5 py-3 border border-border rounded-xl font-bold text-sm hover:bg-muted transition-colors active:scale-[0.98]"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showForm && (
         <div className="rounded-2xl bg-card border border-border/80 p-6 md:p-8 mb-8 card-shadow relative overflow-hidden transition-all duration-300 animate-scale-in">
